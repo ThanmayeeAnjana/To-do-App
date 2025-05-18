@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4CAF50">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f4f8;
+      text-align: center;
+      padding: 50px;
+    }
+    #todo-container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 70%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px;
+      margin-left: 5px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #e7f1ff;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+    body.dark-mode {
+  background-color: #1e1e1e;
+  color: white;
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode #todo-container {
+  background-color: #2c2c2c;
+  color: white;
+  border-color: #555;
+}
+
+body.dark-mode li {
+  background-color: #3c3c3c;
+  color: white;
+}
+  </style>
+</head>
+<body>
+  <div id="todo-container">
+    <h2>My To-Do List</h2>
+    <input type="text" id="taskInput" placeholder="Enter a task" />
+    <button onclick="addTask()">Add</button>
+    <button onclick="clearAllTasks()" style="background-color: red;">Clear All</button>
+<button onclick="toggleDarkMode()" id="darkModeBtn">Enable Dark Mode</button>
+<button onclick="addTaskByVoice()">Add by Voice</button>
+<div style="margin-top: 20px;">
+  <button onclick="filterTasks('all')">All</button>
+  <button onclick="filterTasks('completed')">Completed</button>
+  <button onclick="filterTasks('pending')">Pending</button>
+</div>
+    <ul id="taskList"></ul>
+  </div>
+
+<script>
+  window.onload = function () {
+    const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    savedTasks.forEach(task => {
+      createTask(task.text, task.completed);
+    });
+  };
+
+  function addTask(text = null) {
+    const input = document.getElementById("taskInput");
+    const taskText = text || input.value.trim();
+    if (taskText === "") return;
+
+    createTask(taskText, false);
+    if (!text) input.value = "";
+    saveTasks();
+  }
+
+  function createTask(text, completed) {
+    const li = document.createElement("li");
+    const span = document.createElement("span");
+    span.textContent = text;
+    if (completed) span.classList.add("completed");
+
+    // Toggle complete
+    span.addEventListener("click", () => {
+      span.classList.toggle("completed");
+      saveTasks();
+    });
+
+    // Edit on double click
+    span.addEventListener("dblclick", () => {
+      const newText = prompt("Edit your task:", span.textContent);
+      if (newText !== null && newText.trim() !== "") {
+        span.textContent = newText.trim();
+        saveTasks();
+      }
+    });
+
+    // Delete button
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "❌";
+    delBtn.style.marginLeft = "10px";
+    delBtn.style.background = "transparent";
+    delBtn.style.border = "none";
+    delBtn.style.cursor = "pointer";
+    delBtn.addEventListener("click", () => {
+      li.remove();
+      saveTasks();
+    });
+
+    li.appendChild(span);
+    li.appendChild(delBtn);
+    document.getElementById("taskList").appendChild(li);
+  }
+
+  function saveTasks() {
+    const taskElements = document.querySelectorAll("#taskList li");
+    const tasks = [];
+    taskElements.forEach(li => {
+      const span = li.querySelector("span");
+      tasks.push({
+        text: span.textContent,
+        completed: span.classList.contains("completed"),
+      });
+    });
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }
+
+  function clearAllTasks() {
+    if (confirm("Are you sure you want to clear all tasks?")) {
+      document.getElementById("taskList").innerHTML = "";
+      localStorage.removeItem("tasks");
+    }
+  }
+
+  function toggleDarkMode() {
+    const body = document.body;
+    body.classList.toggle("dark-mode");
+    const btn = document.getElementById("darkModeBtn");
+    btn.textContent = body.classList.contains("dark-mode")
+      ? "Disable Dark Mode"
+      : "Enable Dark Mode";
+  }
+
+  function filterTasks(filter) {
+    const tasks = document.querySelectorAll("#taskList li");
+    tasks.forEach(li => {
+      const isCompleted = li.querySelector("span").classList.contains("completed");
+      if (
+        filter === "all" ||
+        (filter === "completed" && isCompleted) ||
+        (filter === "pending" && !isCompleted)
+      ) {
+        li.style.display = "";
+      } else {
+        li.style.display = "none";
+      }
+    });
+  }
+
+  // Voice input
+  function addTaskByVoice() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = "en-US";
+    recognition.start();
+
+    recognition.onresult = function (event) {
+      const transcript = event.results[0][0].transcript;
+      addTask(transcript);
+    };
+
+    recognition.onerror = function () {
+      alert("Voice input failed. Try again.");
+    };
+  }
+</script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log("Service Worker Registered"));
+  }
+</script>
+</body>
+</html>
